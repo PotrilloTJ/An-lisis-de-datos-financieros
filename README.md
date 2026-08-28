@@ -7,6 +7,6 @@ En análisis financiero sigue evolucionando, su integración con tecnologías co
 Este programa se enfocará a realizar un panel que sea capaz de utilizar librerías especializadas para descargar, limpiar, calcular métricas y visualizar información bursátil o económica de forma automatizada. El analizador funcionará transformando datos contables y de mercado en información clara para guiar la toma de decisiones.
 
 Algunos pasos que busca seguir el programa son:
-    Recopilación de datos
-    Estructuración para la visualización de los datos y ayudar al fácil entendimiento del usuario
-    Procesamiento y cálculos para medir indicadores clave como la liquidez y rentabilidad
+    -Recopilación de datos
+    -Estructuración para la visualización de los datos y ayudar al fácil entendimiento del usuario
+    -Procesamiento y cálculos para medir indicadores clave como la liquidez y rentabilidad
