@@ -13,7 +13,6 @@ INICIO
    - Información financiera
    - Periodo de análisis
    - Otros parámetros requeridos
-   -
 
 3. Recopilar los datos del periodo seleccionado
    - Obtener información desde una fuente de datos
