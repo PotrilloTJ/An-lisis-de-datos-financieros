@@ -10,3 +10,10 @@ Algunos pasos que busca seguir el programa son:
     -Recopilación de datos
     -Estructuración para la visualización de los datos y ayudar al fácil entendimiento del usuario
     -Procesamiento y cálculos para medir indicadores clave como la liquidez y rentabilidad
+
+El análisis de datos financieros soluciona la falta de visibilidad sobre la salud económica, permitiendo tomar decisiones informadas y detectar riesgos a tiempo. Los Problemas principales que resuelve el análisis de datos son:
+    - Desconocimiento de la rentabilidad real
+    - Riesgo de crédito y morosidad
+    - Falta de liquidez y problemas de flujo de caja
+    - Incumplimiento normativo
+    - Procesos manuales lentos
