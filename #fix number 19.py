@@ -59,6 +59,7 @@ def limpiar_datos(datos):
 # FUNCIONES PARA LA OPCIÓN 1
 # ANÁLISIS DE UNA EMPRESA
 # ======================================
+    # La función de opción_1 solamente fue creada para ordernar el código jeje
 def opcion_1():
 
     def recopilar_datos_empresa(ticker):
@@ -416,7 +417,7 @@ if opcion == "1":
     print("\nHas seleccionado el análisis de una empresa.")
     print("\nRecopilando datos de la empresa seleccionada...")
     print("\nAnalizando la empresa...")
-    print(f"{opcion_1(ticker)}")
+    print(f"{analizar_empresa(ticker)}")
     print("\nAnálisis de empresa completado.")
 elif opcion == "2":
     print("\nHas seleccionado el análisis de un activo bursátil.")
