@@ -201,7 +201,7 @@ def opcion_1():
         "flujo": estado_flujo,
         "indicadores": indicadores
     }
-opcion_1()
+return analizar_empresa(ticker)
 # ======================================
 # FUNCIONES PARA LA OPCIÓN 2
 # ANÁLISIS DE UN ACTIVO BURSÁTIL
@@ -218,7 +218,7 @@ def opcion_2():
 
         return informacion, resultados, balance, flujo
     
-opcion_2()
+return 
 # ======================================
 # FUNCIONES PARA LA OPCIÓN 3
 # ANÁLISIS DE INFORMACIÓN ECONÓMICA
