@@ -1,4 +1,4 @@
-#Fix number 237
+#Fix number 238
 from datetime import datetime
 
 import yfinance as yf
@@ -72,7 +72,6 @@ def recopilar_datos_empresa(ticker):
     resultados = empresa.get_income_stmt(freq="yearly")
     balance = empresa.get_balance_sheet(freq="yearly")
     flujo = empresa.get_cash_flow(freq="yearly")
-
     return {
         "informacion": informacion,
         "resultados": resultados,
@@ -95,23 +94,24 @@ def obtener_informacion_empresa(informacion, ticker):
 
 def analizar_estado_resultados(resultados):
     """Obtiene datos principales del estado de resultados."""
+
     ingresos = (
-        resultados.loc["Total Revenue"].values[0]
-        if "Total Revenue" in resultados.index else None
+        resultados.loc["TotalRevenue"].values[0]
+        if "TotalRevenue" in resultados.index else None
     )
 
     utilidad_neta = (
-        resultados.loc["Net Income"].values[0]
-        if "Net Income" in resultados.index else None
+        resultados.loc["NetIncome"].values[0]
+        if "NetIncome" in resultados.index else None
     )
 
     gastos = (
-        resultados.loc["Operating Expenses"].values[0]
-        if "Operating Expenses" in resultados.index else None
+        resultados.loc["OperatingExpense"].values[0]
+        if "OperatingExpense" in resultados.index else None
     )
 
-    if "Total Revenue" in resultados.index:
-        ingresos_historicos = resultados.loc["Total Revenue"].values
+    if "TotalRevenue" in resultados.index:
+        ingresos_historicos = resultados.loc["TotalRevenue"].values
 
         if len(ingresos_historicos) > 1 and ingresos_historicos[0] != 0:
             crecimiento = (
@@ -133,38 +133,33 @@ def analizar_estado_resultados(resultados):
 
 def analizar_balance(balance):
     """Obtiene datos principales del balance."""
+
     activos = (
-        balance.loc["Total Assets"].values[0]
-        if "Total Assets" in balance.index else None
+        balance.loc["TotalAssets"].values[0]
+        if "TotalAssets" in balance.index else None
     )
 
     pasivos = (
-        balance.loc["Total Liabilities"].values[0]
-        if "Total Liabilities" in balance.index else None
+        balance.loc["TotalLiabilitiesNetMinorityInterest"].values[0]
+        if "TotalLiabilitiesNetMinorityInterest" in balance.index
+        else None
     )
 
     patrimonio = (
-        balance.loc["Stockholders Equity"].values[0]
-        if "Stockholders Equity" in balance.index
-        else (
-            balance.loc["Total Stockholder Equity"].values[0]
-            if "Total Stockholder Equity" in balance.index
-            else None
-        )
+        balance.loc["StockholdersEquity"].values[0]
+        if "StockholdersEquity" in balance.index else None
     )
 
-    if "Stockholders Equity" in balance.index:
-        patrimonio_historico = balance.loc["Stockholders Equity"].values
-    elif "Total Stockholder Equity" in balance.index:
-        patrimonio_historico = balance.loc["Total Stockholder Equity"].values
-    else:
-        patrimonio_historico = []
+    if "StockholdersEquity" in balance.index:
+        patrimonio_historico = balance.loc["StockholdersEquity"].values
 
-    if len(patrimonio_historico) > 1 and patrimonio_historico[0] != 0:
-        evolucion = (
-            (patrimonio_historico[-1] - patrimonio_historico[0])
-            / patrimonio_historico[0]
-        ) * 100
+        if len(patrimonio_historico) > 1 and patrimonio_historico[0] != 0:
+            evolucion = (
+                (patrimonio_historico[-1] - patrimonio_historico[0])
+                / patrimonio_historico[0]
+            ) * 100
+        else:
+            evolucion = None
     else:
         evolucion = None
 
@@ -178,34 +173,20 @@ def analizar_balance(balance):
 
 def analizar_flujo_efectivo(flujo):
     """Obtiene los principales flujos de efectivo."""
+
     operativo = (
-        flujo.loc["Operating Cash Flow"].values[0]
-        if "Operating Cash Flow" in flujo.index
-        else (
-            flujo.loc["Total Cash From Operating Activities"].values[0]
-            if "Total Cash From Operating Activities" in flujo.index
-            else None
-        )
+        flujo.loc["OperatingCashFlow"].values[0]
+        if "OperatingCashFlow" in flujo.index else None
     )
 
     inversion = (
-        flujo.loc["Investing Cash Flow"].values[0]
-        if "Investing Cash Flow" in flujo.index
-        else (
-            flujo.loc["Total Cashflows From Investing Activities"].values[0]
-            if "Total Cashflows From Investing Activities" in flujo.index
-            else None
-        )
+        flujo.loc["InvestingCashFlow"].values[0]
+        if "InvestingCashFlow" in flujo.index else None
     )
 
     financiamiento = (
-        flujo.loc["Financing Cash Flow"].values[0]
-        if "Financing Cash Flow" in flujo.index
-        else (
-            flujo.loc["Total Cash From Financing Activities"].values[0]
-            if "Total Cash From Financing Activities" in flujo.index
-            else None
-        )
+        flujo.loc["FinancingCashFlow"].values[0]
+        if "FinancingCashFlow" in flujo.index else None
     )
 
     return {
@@ -287,14 +268,16 @@ def opcion_1(ticker):
     )
 
     print("\nDatos de la empresa recopilados correctamente.")
-
-    return {
-        "informacion": informacion_empresa,
-        "resultados": estado_resultados,
-        "balance": estado_balance,
-        "flujo": estado_flujo,
-        "indicadores": indicadores
-    }
+    print("\nInformación de la empresa:")
+    print(informacion_empresa)
+    print("\nEstado de resultados:")
+    print(estado_resultados)
+    print("\nEstado del balance:")
+    print(estado_balance)
+    print("\nFlujo de efectivo:")
+    print(estado_flujo)
+    print("\nIndicadores financieros:")
+    print(indicadores)
 
 
 # ======================================
@@ -593,6 +576,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
     
