@@ -1,192 +1,286 @@
-#fix number 185
-from abc import ABC, abstractmethod
+#Fix number 237
 from datetime import datetime
-#No sabía como extraer las bibliotecas, lo tuve que investigar y parece ser que es así, no sé si es correcto, pero funciona.
-try:
-    import yfinance as yf
-except ImportError: 
 
-    def _require_yfinance():
-        raise ImportError(
-            "La biblioteca 'yfinance' no está instalada. Instálala con: pip install yfinance"
-        )
-try: 
-    import pandas as pd
-except ImportError: 
+import yfinance as yf
+import pandas as pd
 
-    def _require_pandas():
-        raise ImportError(
-            "La biblioteca 'pandas' no está instalada. Instálala con: pip install pandas"
-        )
-# Jejejejeje
-# Mantiene el modulo util para el analisis y, a la vez, evita que el usuario tenga que instalarlo manualmente. Esto es útil para garantizar que el código funcione correctamente sin depender de la instalación previa de bibliotecas externas.
+
+# ======================================
+# FUNCIONES GENERALES
+# ======================================
 
 def comprobar_bibliotecas():
-
-    if yf is None:
-        print("\nLa biblioteca 'yfinance' no está instalada.")
-        print("Instálala con: pip install yfinance")
+    """Comprueba que las bibliotecas necesarias estén disponibles."""
+    try:
+        import yfinance
+        import pandas
+        return True
+    except ImportError as e:
+        print("\nFalta una biblioteca necesaria.")
+        print(f"Error: {e}")
+        print("Instala las bibliotecas con:")
+        print("pip install yfinance pandas")
         return False
-
-    if pd is None:
-        print("\nLa biblioteca 'pandas' no está instalada.")
-        print("Instálala con: pip install pandas")
-        return False
-
-    return True
 
 
 def limpiar_datos(datos):
+    """Elimina nulos y duplicados y ordena los datos por fecha."""
+    if datos is None or datos.empty:
+        return datos
 
-    # Comprobar valores nulos (función isnull() de pandas) y contar cuántos valores nulos hay en cada columna (función sum() de pandas)
     valores_nulos = datos.isnull().sum()
-
-    # Comprobar filas duplicadas (función duplicated() de pandas)
     duplicados = datos.duplicated().sum()
 
-    # Eliminar filas duplicadas (función drop_duplicates() de pandas)
+    print("\nValores nulos encontrados:")
+    print(valores_nulos[valores_nulos > 0])
+
+    print(f"\nFilas duplicadas encontradas: {duplicados}")
+
     datos = datos.drop_duplicates()
-
-    # Eliminar filas con valores nulos (función dropna() de pandas)
     datos = datos.dropna()
-
-    # Ordenar los datos cronológicamente (función sort_index() de pandas)
     datos = datos.sort_index()
 
     return datos
 
+
+def descargar_datos_historicos(ticker, fecha_inicio, fecha_fin):
+    """Descarga y limpia los datos históricos."""
+    datos = yf.download(
+        ticker,
+        start=fecha_inicio,
+        end=fecha_fin,
+        auto_adjust=False,
+        progress=False
+    )
+
+    if datos.empty:
+        return None
+
+    return limpiar_datos(datos)
+
+
 # ======================================
-# FUNCIONES PARA LA OPCIÓN 1
+# OPCIÓN 1
 # ANÁLISIS DE UNA EMPRESA
 # ======================================
-    # La función de opción_1 solamente fue creada para ordernar el código jeje
-def opcion_1():
 
-    def recopilar_datos_empresa(ticker):
+def recopilar_datos_empresa(ticker):
+    """Obtiene información y estados financieros de una empresa."""
+    empresa = yf.Ticker(ticker)
 
-        empresa = yf.Ticker(ticker)
+    informacion = empresa.get_info()
+    resultados = empresa.get_income_stmt(freq="yearly")
+    balance = empresa.get_balance_sheet(freq="yearly")
+    flujo = empresa.get_cash_flow(freq="yearly")
 
-        informacion = empresa.info
-        resultados = empresa.income_stmt
-        balance = empresa.balance_sheet
-        flujo = empresa.cashflow
+    return {
+        "informacion": informacion,
+        "resultados": resultados,
+        "balance": balance,
+        "flujo": flujo
+    }
 
-        return informacion, resultados, balance, flujo
 
-    def obtener_informacion_empresa(informacion, ticker):
-    #La instrucción .get funciona como un método seguro para acceder a los valores del diccionario, evitando errores si la clave no existe.
-        return {
-        #obterner información general de la empresa, como su nombre, sector, industria, país, moneda y ticker.
+def obtener_informacion_empresa(informacion, ticker):
+    """Extrae la información general de la empresa."""
+    return {
         "nombre": informacion.get("longName"),
         "sector": informacion.get("sector"),
         "industria": informacion.get("industry"),
         "pais": informacion.get("country"),
         "moneda": informacion.get("currency"),
         "ticker": ticker
-        }
-
-
-    def analizar_estado_resultados(resultados):
-    #La instrucción .loc de pandas se utiliza para acceder a filas y columnas específicas de un DataFrame utilizando etiquetas. En este caso, se utiliza para obtener los valores de ingresos, utilidad neta y gastos de la empresa a partir del estado de resultados.
-    # Devolver resultados
-        return {
-            # Obtener ingresos
-    "ingresos": resultados.loc["Total Revenue"].values[0] if "Total Revenue" in resultados.index else None,
-    # Obtener utilidad neta
-    "utilidad_neta": resultados.loc["Net Income"].values[0] if "Net Income" in resultados.index else None,
-    # Obtener gastos
-    "gastos": resultados.loc["Operating Expenses"].values[0] if "Operating Expenses" in resultados.index else None,
-    # Calcular crecimiento
-    "crecimiento": (resultados.loc["Total Revenue"].values[-1] - resultados.loc["Total Revenue"].values[0]) / resultados.loc["Total Revenue"].values[0] * 100 if "Total Revenue" in resultados.index and len(resultados.loc["Total Revenue"].values) > 1 else None
-        }
-
-
-    def analizar_balance(balance):
-    #Tristemente, todos estos deben de estar en ingles. Maldigo a los gringos por no traducirlo, pero bueno, es lo que hay. No me queda de otra que adaptarme a su idioma.
-    # Obtener activos
-        activos = balance.loc["Total Assets"].values[0] if "Total Assets" in balance.index else None
-    # Obtener pasivos
-        pasivos = balance.loc["Total Liabilities"].values[0] if "Total Liabilities" in balance.index else None
-    # Obtener patrimonio
-        patrimonio = balance.loc["Total Stockholder Equity"].values[0] if "Total Stockholder Equity" in balance.index else None
-    # Analizar su evolución
-        evolucion_patrimonio = (balance.loc["Total Stockholder Equity"].values[-1] - balance.loc["Total Stockholder Equity"].values[0]) / balance.loc["Total Stockholder Equity"].values[0] * 100   if patrimonio and balance.loc["Total Stockholder Equity"].values[0] != 0 else None
-    # Devolver resultados
-        return {    
-        "activos": activos,
-        "pasivos": pasivos,
-        "patrimonio": patrimonio,
-        "evolucion": evolucion_patrimonio
-        }
-
-
-    def analizar_flujo_efectivo(flujo):
-    # operación, inversión y financiamiento.
-        return {
-        # Obtener flujo de efectivo de operación
-        "operativo": flujo.loc["Total Cash From Operating Activities"].values[0] if "Total Cash From Operating Activities" in flujo.index else None,
-        # Obtener flujo de efectivo de inversión
-        "inversion": flujo.loc["Total Cashflows From Investing Activities"].values[0] if "Total Cashflows From Investing Activities" in flujo.index else None,
-        # Obtener flujo de efectivo de financiamiento   
-        "financiamiento": flujo.loc["Total Cash From Financing Activities"].values[0] if "Total Cash From Financing Activities" in flujo.index else None
     }
 
 
-    def calcular_indicadores_financieros(resultados, balance):
-    # Calcular margen neto
-        margen_neto = resultados["utilidad_neta"] / resultados["ingresos"] if resultados["ingresos"] else None
-    # Calcular ROA
-        roa = resultados["utilidad_neta"] / balance["activos"] if balance["activos"] else None
-    # Calcular ROE
-        roe = resultados["utilidad_neta"] / balance["patrimonio"] if balance["patrimonio"] else None
-    # Calcular endeudamiento
-        endeudamiento = balance["pasivos"] / balance["activos"] if balance["activos"] else None
-    # Devolver indicadores
-        indicadores = {
+def analizar_estado_resultados(resultados):
+    """Obtiene datos principales del estado de resultados."""
+    ingresos = (
+        resultados.loc["Total Revenue"].values[0]
+        if "Total Revenue" in resultados.index else None
+    )
+
+    utilidad_neta = (
+        resultados.loc["Net Income"].values[0]
+        if "Net Income" in resultados.index else None
+    )
+
+    gastos = (
+        resultados.loc["Operating Expenses"].values[0]
+        if "Operating Expenses" in resultados.index else None
+    )
+
+    if "Total Revenue" in resultados.index:
+        ingresos_historicos = resultados.loc["Total Revenue"].values
+
+        if len(ingresos_historicos) > 1 and ingresos_historicos[0] != 0:
+            crecimiento = (
+                (ingresos_historicos[-1] - ingresos_historicos[0])
+                / ingresos_historicos[0]
+            ) * 100
+        else:
+            crecimiento = None
+    else:
+        crecimiento = None
+
+    return {
+        "ingresos": ingresos,
+        "utilidad_neta": utilidad_neta,
+        "gastos": gastos,
+        "crecimiento": crecimiento
+    }
+
+
+def analizar_balance(balance):
+    """Obtiene datos principales del balance."""
+    activos = (
+        balance.loc["Total Assets"].values[0]
+        if "Total Assets" in balance.index else None
+    )
+
+    pasivos = (
+        balance.loc["Total Liabilities"].values[0]
+        if "Total Liabilities" in balance.index else None
+    )
+
+    patrimonio = (
+        balance.loc["Stockholders Equity"].values[0]
+        if "Stockholders Equity" in balance.index
+        else (
+            balance.loc["Total Stockholder Equity"].values[0]
+            if "Total Stockholder Equity" in balance.index
+            else None
+        )
+    )
+
+    if "Stockholders Equity" in balance.index:
+        patrimonio_historico = balance.loc["Stockholders Equity"].values
+    elif "Total Stockholder Equity" in balance.index:
+        patrimonio_historico = balance.loc["Total Stockholder Equity"].values
+    else:
+        patrimonio_historico = []
+
+    if len(patrimonio_historico) > 1 and patrimonio_historico[0] != 0:
+        evolucion = (
+            (patrimonio_historico[-1] - patrimonio_historico[0])
+            / patrimonio_historico[0]
+        ) * 100
+    else:
+        evolucion = None
+
+    return {
+        "activos": activos,
+        "pasivos": pasivos,
+        "patrimonio": patrimonio,
+        "evolucion": evolucion
+    }
+
+
+def analizar_flujo_efectivo(flujo):
+    """Obtiene los principales flujos de efectivo."""
+    operativo = (
+        flujo.loc["Operating Cash Flow"].values[0]
+        if "Operating Cash Flow" in flujo.index
+        else (
+            flujo.loc["Total Cash From Operating Activities"].values[0]
+            if "Total Cash From Operating Activities" in flujo.index
+            else None
+        )
+    )
+
+    inversion = (
+        flujo.loc["Investing Cash Flow"].values[0]
+        if "Investing Cash Flow" in flujo.index
+        else (
+            flujo.loc["Total Cashflows From Investing Activities"].values[0]
+            if "Total Cashflows From Investing Activities" in flujo.index
+            else None
+        )
+    )
+
+    financiamiento = (
+        flujo.loc["Financing Cash Flow"].values[0]
+        if "Financing Cash Flow" in flujo.index
+        else (
+            flujo.loc["Total Cash From Financing Activities"].values[0]
+            if "Total Cash From Financing Activities" in flujo.index
+            else None
+        )
+    )
+
+    return {
+        "operativo": operativo,
+        "inversion": inversion,
+        "financiamiento": financiamiento
+    }
+
+
+def calcular_indicadores_financieros(resultados, balance):
+    """Calcula margen neto, ROA, ROE y endeudamiento."""
+
+    utilidad_neta = resultados["utilidad_neta"]
+    ingresos = resultados["ingresos"]
+    activos = balance["activos"]
+    patrimonio = balance["patrimonio"]
+    pasivos = balance["pasivos"]
+
+    margen_neto = (
+        utilidad_neta / ingresos
+        if utilidad_neta is not None and ingresos not in (None, 0)
+        else None
+    )
+
+    roa = (
+        utilidad_neta / activos
+        if utilidad_neta is not None and activos not in (None, 0)
+        else None
+    )
+
+    roe = (
+        utilidad_neta / patrimonio
+        if utilidad_neta is not None and patrimonio not in (None, 0)
+        else None
+    )
+
+    endeudamiento = (
+        pasivos / activos
+        if pasivos is not None and activos not in (None, 0)
+        else None
+    )
+
+    return {
         "margen_neto": margen_neto,
         "roa": roa,
         "roe": roe,
         "endeudamiento": endeudamiento
     }
 
-        return indicadores
 
+def opcion_1(ticker):
+    """Realiza el análisis completo de una empresa."""
 
-    def analizar_empresa(ticker):
+    print("\n======================================")
+    print("       ANÁLISIS DE LA EMPRESA")
+    print("======================================")
 
-        print("\n======================================")
-        print("       ANÁLISIS DE LA EMPRESA")
-        print("======================================")
+    print("\nRecopilando información de la empresa...")
 
-        print("\nRecopilando información de la empresa...")
+    datos = recopilar_datos_empresa(ticker)
 
-    informacion, resultados, balance, flujo = recopilar_datos_empresa(ticker)
+    informacion = datos["informacion"]
+    resultados = datos["resultados"]
+    balance = datos["balance"]
+    flujo = datos["flujo"]
 
-    # Limpiar los estados financieros
-    resultados = limpiar_datos(resultados)
-    balance = limpiar_datos(balance)
-    flujo = limpiar_datos(flujo)
-
-    # Obtener información general
     informacion_empresa = obtener_informacion_empresa(
         informacion,
         ticker
     )
 
-    # Analizar los diferentes estados financieros
-    estado_resultados = analizar_estado_resultados(
-        resultados
-    )
+    estado_resultados = analizar_estado_resultados(resultados)
+    estado_balance = analizar_balance(balance)
+    estado_flujo = analizar_flujo_efectivo(flujo)
 
-    estado_balance = analizar_balance(
-        balance
-    )
-
-    estado_flujo = analizar_flujo_efectivo(
-        flujo
-    )
-
-    # Calcular indicadores financieros
     indicadores = calcular_indicadores_financieros(
         estado_resultados,
         estado_balance
@@ -201,243 +295,304 @@ def opcion_1():
         "flujo": estado_flujo,
         "indicadores": indicadores
     }
-return analizar_empresa(ticker)
+
+
 # ======================================
-# FUNCIONES PARA LA OPCIÓN 2
+# OPCIÓN 2
 # ANÁLISIS DE UN ACTIVO BURSÁTIL
 # ======================================
-def opcion_2():
-    def recopilar_datos_empresa(ticker):
 
-        empresa = yf.Ticker(ticker)
-
-        informacion = empresa.info
-        resultados = empresa.income_stmt
-        balance = empresa.balance_sheet
-        flujo = empresa.cashflow
-
-        return informacion, resultados, balance, flujo
-    
-return 
-# ======================================
-# FUNCIONES PARA LA OPCIÓN 3
-# ANÁLISIS DE INFORMACIÓN ECONÓMICA
-# ======================================
+def obtener_valor_activo(ticker):
+    """Obtiene el precio más reciente disponible."""
+    activo = yf.Ticker(ticker)
+    return activo.fast_info["last_price"]
 
 
-
-
-
-
-
-#Otras funciones que se pueden agregar para mejorar el análisis financiero, como calcular el rendimiento de la acción en el período seleccionado y calcular estadísticas básicas de los datos descargados.
 def calcular_rendimiento(datos):
-    #La función calcular_rendimiento calcula el rendimiento de la acción en el período seleccionado. Se toma el precio de cierre inicial y final, y se calcula el rendimiento porcentual utilizando la fórmula: ((precio_final - precio_inicial) / precio_inicial) * 100.
-    #Precio inicial y precio final se obtienen de la columna "Close" del DataFrame de datos, utilizando iloc para acceder a los valores en las posiciones correspondientes.
-    precio_inicial = datos["Close"].iloc[0]
-    precio_final = datos["Close"].iloc[-1]
+    """Calcula el rendimiento porcentual del periodo."""
 
-    rendimiento = (
-        (precio_final - precio_inicial)
-        / precio_inicial
-    ) * 100
+    if datos is None or datos.empty:
+        return None
 
-    return rendimiento
+    cierre = datos["Close"]
+
+    # Algunas versiones/configuraciones de yfinance
+    # pueden devolver una columna de un solo ticker.
+    if isinstance(cierre, pd.DataFrame):
+        cierre = cierre.iloc[:, 0]
+
+    precio_inicial = cierre.iloc[0]
+    precio_final = cierre.iloc[-1]
+
+    if precio_inicial == 0:
+        return None
+
+    return ((precio_final - precio_inicial) / precio_inicial) * 100
+
+
 def calcular_estadisticas(datos):
-    #La función calcular_estadisticas calcula estadísticas básicas de los datos descargados, como el promedio, máximo, mínimo y mediana de los precios de cierre. Se utiliza la columna "Close" del DataFrame de datos y se aplican las funciones mean(), max(), min() y median() de pandas para obtener los valores correspondientes.
-    estadisticas = {
-        "promedio": datos["Close"].mean(),
-        "maximo": datos["Close"].max(),
-        "minimo": datos["Close"].min(),
-        "mediana": datos["Close"].median()
-    }
+    """Calcula estadísticas básicas del precio de cierre."""
 
-    return estadisticas
+    if datos is None or datos.empty:
+        return None
 
-#Está muy desordenado jejejejeje, pero funciona, lo importante es que funcione y que sea entendible para el usuario.
-def recopilar_datos_empresa(ticker):
+    cierre = datos["Close"]
 
-    empresa = yf.Ticker(ticker)
-
-    informacion = empresa.info
-    resultados = empresa.income_stmt
-    balance = empresa.balance_sheet
-    flujo = empresa.cashflow
-
-    return informacion, resultados, balance, flujo
-#Para que sea vea "llamativo" y "profesional" el analizador de datos financieros.
-print("======================================")
-print("     ANALIZADOR DE DATOS FINANCIEROS")
-print("======================================")
-
-# 1. Solicitar el tipo de análisis
-#Solicitación al usuario del tipo de análisis que desea realizar y la fuente de datos que desea utilizar.
-
-print("\n¿Qué tipo de análisis deseas realizar?")
-print("1. Análisis de una empresa")
-print("2. Análisis de un activo bursátil")
-print("3. Análisis de información económica")
-
-opcion = input("\nSelecciona una opción: ")
-
-print("\nHas seleccionado la opción:", opcion)
-
-
-# Solicitar fechas que desea analizar y verificar que sean válidas
-# 2. Solicitar los datos necesarios
-if opcion in ["1", "2", "3"]:
-
-    fecha_inicio = input(
-        "\nIngresa la fecha de inicio (YYYY-MM-DD): "
-    )
-
-    fecha_fin = input(
-        "Ingresa la fecha de fin (YYYY-MM-DD): "
-    )
-
-    try:
-
-        datetime.strptime(fecha_inicio, "%Y-%m-%d")
-        datetime.strptime(fecha_fin, "%Y-%m-%d")
-
-        print("\nLas fechas tienen un formato válido.")
-
-    except ValueError:
-
-        print("\nFormato de fecha inválido.")
-        print("Utiliza el formato YYYY-MM-DD.")
-# 3. Recopilar los datos del periodo seleccionado
-print("\nSelecciona una empresa para analizar:")
-print("1. Apple (AAPL)")
-print("2. Microsoft (MSFT)")
-print("3. Amazon (AMZN)")
-print("4. Google (GOOGL)")
-print("5. Tesla (TSLA)")
-print("6. Meta (META)")
-print("7. Netflix (NFLX)")
-print("8. Otra empresa")
-
-N = input("\nSelecciona una opción: ")
-
-if N == "1":
-    ticker = "AAPL"
-elif N == "2":
-    ticker = "MSFT"
-elif N == "3":
-    ticker = "AMZN"
-elif N == "4":
-    ticker = "GOOGL"
-elif N == "5":
-    ticker = "TSLA"
-elif N == "6":
-    ticker = "META"
-elif N == "7":
-    ticker = "NFLX"
-elif N == "8":
-    ticker = input(
-        "Introduce el ticker de la empresa (ejemplo: AAPL): "
-    ).upper()
-else:
-    print("Opción inválida.")
-    ticker = None
-# Obtener datos históricos de las fechas ingresadas por el usuario, utilizando la biblioteca yfinance para descargar los datos financieros de la empresa seleccionada.
-datos = yf.download( 
-    ticker,
-    start=fecha_inicio,
-    end=fecha_fin
-)
-
-def obtener_informacion_empresa(ticker):
-    #yf.ticker funciona como un objeto que representa una empresa en Yahoo Finance, y permite acceder a información detallada sobre la empresa, como su nombre, sector, industria, país, moneda y otros datos relevantes.
-    empresa = yf.Ticker(ticker)
-    #empresa.info devuelve un diccionario con información detallada sobre la empresa, incluyendo su nombre, sector, industria, país, moneda y otros datos relevantes.
-    informacion = empresa.info
+    if isinstance(cierre, pd.DataFrame):
+        cierre = cierre.iloc[:, 0]
 
     return {
-        #.get funciona como un método seguro para acceder a los valores del diccionario, evitando errores si la clave no existe.
-        "nombre": informacion.get("longName"),
-        "sector": informacion.get("sector"),
-        "industria": informacion.get("industry"),
-        "pais": informacion.get("country"),
-        "moneda": informacion.get("currency"),
-        "ticker": ticker
+        "promedio": cierre.mean(),
+        "maximo": cierre.max(),
+        "minimo": cierre.min(),
+        "mediana": cierre.median()
     }
 
-def analizar_estado_resultados(ticker):
 
-    empresa = yf.Ticker(ticker)
+def tendencia_activo_bursatil(datos):
+    """Indica si el precio terminó por encima o por debajo del inicio."""
 
-    resultados = empresa.income_stmt
+    if datos is None or datos.empty:
+        return None
 
-    return resultados
+    cierre = datos["Close"]
 
+    if isinstance(cierre, pd.DataFrame):
+        cierre = cierre.iloc[:, 0]
 
-def analizar_balance(ticker):
-
-    empresa = yf.Ticker(ticker)
-
-    balance = empresa.balance_sheet
-
-    return balance
-
-
-def analizar_flujo_efectivo(ticker):
-
-    empresa = yf.Ticker(ticker)
-
-    flujo = empresa.cashflow
-
-    return flujo
+    if cierre.iloc[-1] > cierre.iloc[0]:
+        return "Tendencia ascendente"
+    elif cierre.iloc[-1] < cierre.iloc[0]:
+        return "Tendencia descendente"
+    else:
+        return "Sin cambio"
 
 
-def analizar_empresa(ticker):
+def volatilidad_activo_bursatil(datos):
+    """Calcula la desviación estándar de los rendimientos diarios."""
+
+    if datos is None or datos.empty:
+        return None
+
+    cierre = datos["Close"]
+
+    if isinstance(cierre, pd.DataFrame):
+        cierre = cierre.iloc[:, 0]
+
+    rendimientos = cierre.pct_change().dropna()
+
+    if rendimientos.empty:
+        return None
+
+    return rendimientos.std()
+
+
+def opcion_2(ticker, fecha_inicio, fecha_fin):
+    """Realiza el análisis de un activo bursátil."""
 
     print("\n======================================")
-    print("       ANÁLISIS DE LA EMPRESA")
+    print("       ANÁLISIS DEL ACTIVO")
     print("======================================")
 
-    informacion, resultados, balance, flujo = recopilar_datos_empresa(ticker)
+    print("\nDescargando datos históricos...")
 
-    indicadores = calcular_indicadores_financieros(
-        resultados,
-        balance
+    datos = descargar_datos_historicos(
+        ticker,
+        fecha_inicio,
+        fecha_fin
     )
 
-    print("\nAnálisis de empresa completado.")
+    if datos is None or datos.empty:
+        print("\nNo se encontraron datos para ese periodo.")
+        return None
+
+    valor_actual = obtener_valor_activo(ticker)
+    rendimiento = calcular_rendimiento(datos)
+    estadisticas = calcular_estadisticas(datos)
+    tendencia = tendencia_activo_bursatil(datos)
+    volatilidad = volatilidad_activo_bursatil(datos)
 
     return {
-        "informacion": informacion,
-        "resultados": resultados,
-        "balance": balance,
-        "flujo": flujo,
-        "indicadores": indicadores
+        "ticker": ticker,
+        "valor_actual": valor_actual,
+        "rendimiento": rendimiento,
+        "estadisticas": estadisticas,
+        "tendencia": tendencia,
+        "volatilidad": volatilidad
     }
-analizar_empresa(ticker)
-if opcion == "1":
-    print("\nHas seleccionado el análisis de una empresa.")
-    print("\nRecopilando datos de la empresa seleccionada...")
-    print("\nAnalizando la empresa...")
-    print(f"{analizar_empresa(ticker)}")
-    print("\nAnálisis de empresa completado.")
-elif opcion == "2":
-    print("\nHas seleccionado el análisis de un activo bursátil.")
-    print("\nRecopilando datos del activo bursátil seleccionado...")
-    print("\nAnalizando el activo bursátil...")
-
-elif opcion == "3":
-    print("\nHas seleccionado el análisis de información económica.")
-    
-
-else:
-    print("\nOpción inválida. Por favor, vuelve a ejecutar el programa y selecciona una opción válida.")
 
 
-# 3. Recopilar los datos del periodo seleccionado
+# ======================================
+# OPCIÓN 3
+# INFORMACIÓN ECONÓMICA
+# ======================================
 
-# Comprobar que existen datos
-# paso 4 fue recorrido a la linea 19, que es la función limpiar_datos, que se encarga de limpiar los datos descargados y eliminar valores nulos y duplicados.
-# 5. Estructurar los datos y ordenarlos
-# .sort_index() de pandas se utiliza para ordenar los datos cronológicamente según el índice del DataFrame, que en este caso es la fecha. Esto asegura que los datos estén en el orden correcto para realizar análisis y cálculos posteriores.
-datos = datos.sort_index()
+def opcion_3(ticker):
+    """
+    Mantiene la estructura de la opción 3.
+    La fuente yfinance permite obtener información de mercado,
+    pero aquí puedes agregar después indicadores económicos
+    específicos.
+    """
+
+    print("\n======================================")
+    print("     INFORMACIÓN ECONÓMICA")
+    print("======================================")
+
+    print("\nLa estructura de esta opción está lista.")
+    print("Aquí puedes agregar posteriormente los indicadores")
+    print("económicos que quieras analizar.")
+
+    return {
+        "ticker": ticker,
+        "mensaje": "Módulo de información económica pendiente de ampliar."
+    }
+
+
+# ======================================
+# MENÚ
+# ======================================
+
+def seleccionar_empresa():
+    """Permite al usuario seleccionar una empresa."""
+
+    print("\nSelecciona una empresa para analizar:")
+    print("1. Apple (AAPL)")
+    print("2. Microsoft (MSFT)")
+    print("3. Amazon (AMZN)")
+    print("4. Google (GOOGL)")
+    print("5. Tesla (TSLA)")
+    print("6. Meta (META)")
+    print("7. Netflix (NFLX)")
+    print("8. Otra empresa")
+
+    opcion = input("\nSelecciona una opción: ")
+
+    empresas = {
+        "1": "AAPL",
+        "2": "MSFT",
+        "3": "AMZN",
+        "4": "GOOGL",
+        "5": "TSLA",
+        "6": "META",
+        "7": "NFLX"
+    }
+
+    if opcion in empresas:
+        return empresas[opcion]
+
+    if opcion == "8":
+        ticker = input(
+            "Introduce el ticker de la empresa (ejemplo: AAPL): "
+        ).upper().strip()
+
+        return ticker
+
+    print("\nOpción inválida.")
+    return None
+
+
+def solicitar_fechas():
+    """Solicita y valida las fechas del análisis."""
+
+    while True:
+        fecha_inicio = input(
+            "\nIngresa la fecha de inicio (YYYY-MM-DD): "
+        )
+
+        fecha_fin = input(
+            "Ingresa la fecha de fin (YYYY-MM-DD): "
+        )
+
+        try:
+            inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            fin = datetime.strptime(fecha_fin, "%Y-%m-%d")
+
+            if inicio >= fin:
+                print("\nLa fecha de inicio debe ser anterior a la fecha final.")
+                continue
+
+            print("\nLas fechas tienen un formato válido.")
+            return fecha_inicio, fecha_fin
+
+        except ValueError:
+            print("\nFormato de fecha inválido.")
+            print("Utiliza el formato YYYY-MM-DD.")
+
+
+def mostrar_resultado(resultado):
+    """Muestra el resultado final de forma legible."""
+
+    print("\n======================================")
+    print("             RESULTADO")
+    print("======================================")
+
+    if resultado is None:
+        print("No fue posible obtener resultados.")
+        return
+
+    print(resultado)
+
+
+def main():
+    """Función principal del programa."""
+
+    if not comprobar_bibliotecas():
+        return
+
+    print("======================================")
+    print("     ANALIZADOR DE DATOS FINANCIEROS")
+    print("======================================")
+
+    print("\n¿Qué tipo de análisis deseas realizar?")
+    print("1. Análisis de una empresa")
+    print("2. Análisis de un activo bursátil")
+    print("3. Análisis de información económica")
+
+    opcion = input("\nSelecciona una opción: ").strip()
+
+    if opcion not in ["1", "2", "3"]:
+        print("\nOpción inválida. Vuelve a ejecutar el programa.")
+        return
+
+    print("\nHas seleccionado la opción:", opcion)
+
+    fecha_inicio, fecha_fin = solicitar_fechas()
+
+    ticker = seleccionar_empresa()
+
+    if ticker is None:
+        return
+
+    try:
+        if opcion == "1":
+            print("\nHas seleccionado el análisis de una empresa.")
+            resultado = opcion_1(ticker)
+
+        elif opcion == "2":
+            print("\nHas seleccionado el análisis de un activo bursátil.")
+            resultado = opcion_2(
+                ticker,
+                fecha_inicio,
+                fecha_fin
+            )
+
+        else:
+            print("\nHas seleccionado el análisis de información económica.")
+            resultado = opcion_3(ticker)
+
+        mostrar_resultado(resultado)
+
+        print("\nAnálisis completado.")
+
+    except Exception as e:
+        print("\nOcurrió un error durante el análisis.")
+        print(f"Tipo de error: {type(e).__name__}")
+        print(f"Detalle: {e}")
+
+
+if __name__ == "__main__":
+    main()
+
 
     
